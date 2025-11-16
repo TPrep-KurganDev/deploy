@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:15-alpine
-    container_name: tprep_postgres
+    container_name: tprep_postgres_prod
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -19,7 +19,7 @@ services:
   backend:
     image: ghcr.io/tprep-kurgandev/backend/release-backend:${BACKEND_VERSION:-latest}
     platform: linux/amd64
-    container_name: tprep_backend
+    container_name: tprep_backend_prod
     environment:
       DB_USER: ${DB_USER}
       DB_NAME: ${DB_NAME}
@@ -48,6 +48,7 @@ services:
   frontend:
     image: ghcr.io/tprep-kurgandev/frontend/release-frontend:${FRONTEND_VERSION:-latest}
     platform: linux/amd64
+    container_name: tprep_frontend_prod
     ports:
       - "8080:80"
     restart: unless-stopped
