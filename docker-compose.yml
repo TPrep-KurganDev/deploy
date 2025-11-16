@@ -15,6 +15,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   backend:
     image: ghcr.io/tprep-kurgandev/backend/release-backend:${BACKEND_VERSION:-latest}
@@ -44,6 +45,7 @@ services:
         echo 'Starting application...' &&
         uvicorn tprep.app.main:app --host 0.0.0.0 --port 8000
       "
+    restart: unless-stopped
 
   frontend:
     image: ghcr.io/tprep-kurgandev/frontend/release-frontend:${FRONTEND_VERSION:-latest}
