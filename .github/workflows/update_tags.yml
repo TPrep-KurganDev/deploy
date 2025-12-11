@@ -1,19 +1,23 @@
-name: update tags
+name: Update tags
 
 on:
   workflow_dispatch:
     inputs:
       backend_version:
-        description: 'Release version (e.g. 1.0, 2.5)'
+        description: 'Backend version (e.g. 1.0, 2.5)'
         required: false
       frontend_version:
-        description: 'Release version (e.g. 1.0, 2.5)'
+        description: 'Frontend version (e.g. 1.0, 2.5)'
         required: false
 
 jobs:
   update-env-file:
     runs-on: ubuntu-latest
     steps:
+      - name: 🔍 Debug - Check key format (DELETE AFTER)
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | head -n 3
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tail -n 3
       - name: Update .env file on server
         uses: appleboy/ssh-action@v1.0.0
         with:
