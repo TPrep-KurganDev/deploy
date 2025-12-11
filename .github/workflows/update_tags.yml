@@ -1,50 +1,41 @@
-name: Update tags
+name: Update .env Versions
 
 on:
   workflow_dispatch:
     inputs:
       backend_version:
-        description: 'Backend version (e.g. 1.0, 2.5)'
+        description: 'Backend version'
         required: false
       frontend_version:
-        description: 'Frontend version (e.g. 1.0, 2.5)'
+        description: 'Frontend version'
         required: false
 
 jobs:
-  update-env-file:
+  update-env:
     runs-on: ubuntu-latest
     steps:
-      - name: 🔍 Debug - Check key format (DELETE AFTER)
+      - name: Prepare SSH Key
         run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" | head -n 3
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tail -n 3
-      - name: Update .env file on server
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Update .env on Server
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key_path: ~/.ssh/id_ed25519
           port: 22
-          add-new-line: true
           script: |
             ENV_FILE="/deploy/.env"
-
             if [ ! -f "$ENV_FILE" ]; then
-              echo "Файл $ENV_FILE не найден!"
+              echo "❌ Файл $ENV_FILE не найден!"
               exit 1
             fi
 
-            if grep -q "^BACKEND_VERSION=" "$ENV_FILE"; then
-              sed -i "s/^BACKEND_VERSION=.*/BACKEND_VERSION=${{ inputs.backend_version }}/" "$ENV_FILE"
-            else
-              echo "BACKEND_VERSION=${{ inputs.backend_version }}" >> "$ENV_FILE"
-            fi
+            sed -i "s/^BACKEND_VERSION=.*/BACKEND_VERSION=${{ inputs.backend_version }}/" "$ENV_FILE"
+            sed -i "s/^FRONTEND_VERSION=.*/FRONTEND_VERSION=${{ inputs.frontend_version }}/" "$ENV_FILE"
 
-            if grep -q "^FRONTEND_VERSION=" "$ENV_FILE"; then
-              sed -i "s/^FRONTEND_VERSION=.*/FRONTEND_VERSION=${{ inputs.frontend_version }}/" "$ENV_FILE"
-            else
-              echo "FRONTEND_VERSION=${{ inputs.frontend_version }}" >> "$ENV_FILE"
-            fi
-            
             echo "✅ Обновлён .env файл:"
-            grep -E "^(BACKEND_VERSION|FRONTEND_VERSION)=" "$E
+            grep -E "^(BACKEND_VERSION|FRONTEND_VERSION)=" "$ENV_FILE"
