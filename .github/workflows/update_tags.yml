@@ -25,6 +25,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
+          add-new-line: true
           script: |
             ENV_FILE="/deploy/.env"
 
