@@ -22,7 +22,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          echo -e "Host ${ { secrets.SSH_HOST } }\n\tStrictHostKeyChecking no\n\tUser ${ { secrets.SSH_USER } }" >> ~/.ssh/config
+          echo -e "Host ${{ secrets.SSH_HOST }}\n\tStrictHostKeyChecking no\n\tUser ${{ secrets.SSH_USER }}" >> ~/.ssh/config
           chmod 600 ~/.ssh/config
 
       - name: Update .env file on server
