@@ -1,20 +1,20 @@
-name: Update .env and Restart
+name: Update tags
 
 on:
   workflow_dispatch:
     inputs:
       backend_version:
-        description: 'New backend version (optional, leave empty to skip)'
+        description: 'New backend version'
         required: false
       frontend_version:
-        description: 'New frontend version (optional, leave empty to skip)'
+        description: 'New frontend version'
         required: false
 
 jobs:
   update-env:
     runs-on: ubuntu-latest
     steps:
-      - name: 🛠️ Install SSH client
+      - name: Install SSH client
         run: sudo apt-get update && sudo apt-get install -y openssh-client
 
       - name: Set up SSH key
