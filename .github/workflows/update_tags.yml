@@ -63,4 +63,4 @@ jobs:
 
             echo "✅ Текущие версии:"
             grep -E "^(BACKEND_VERSION|FRONTEND_VERSION)=" "\$ENV_FILE"
-EOF
+          EOF
