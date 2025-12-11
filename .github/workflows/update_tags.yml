@@ -30,38 +30,37 @@ jobs:
         run: |
           BACKEND_VERSION="${{ inputs.backend_version }}"
           FRONTEND_VERSION="${{ inputs.frontend_version }}"
+          
+          export BACKEND_VERSION FRONTEND_VERSION
 
-          ssh server << 'EOF'
-            ENV_FILE="deploy/.env"
+          ssh server << EOF
+            BACKEND_VERSION="\$BACKEND_VERSION"
+            FRONTEND_VERSION="\$FRONTEND_VERSION"
+            ENV_FILE=".env"
 
-            if [ ! -f "$ENV_FILE" ]; then
-              echo "Файл $ENV_FILE не найден!"
+            cd deploy
+
+            if [ ! -f "\$ENV_FILE" ]; then
+              echo "Файл \$ENV_FILE не найден!"
               exit 1
             fi
 
-            # Обновляем BACKEND_VERSION, если переменная задана и не пустая
-            if [ -n "$BACKEND_VERSION" ]; then
-              echo "Меняем BACKEND_VERSION на $BACKEND_VERSION"
-              sed -i "s/^BACKEND_VERSION=.*/BACKEND_VERSION=$BACKEND_VERSION/" "$ENV_FILE"
+            if [ -n "\$BACKEND_VERSION" ]; then
+              echo "🔧 Меняем BACKEND_VERSION на \$BACKEND_VERSION"
+              sed -i "s/^BACKEND_VERSION=.*/BACKEND_VERSION=\$BACKEND_VERSION/" "\$ENV_FILE"
+              docker compose up -d backend
             else
               echo "BACKEND_VERSION не передан — пропускаем."
             fi
 
-            # Обновляем FRONTEND_VERSION, если задана
-            if [ -n "$FRONTEND_VERSION" ]; then
-              echo "Меняем FRONTEND_VERSION на $FRONTEND_VERSION"
-              sed -i "s/^FRONTEND_VERSION=.*/FRONTEND_VERSION=$FRONTEND_VERSION/" "$ENV_FILE"
+            if [ -n "\$FRONTEND_VERSION" ]; then
+              echo "🔧 Меняем FRONTEND_VERSION на \$FRONTEND_VERSION"
+              sed -i "s/^FRONTEND_VERSION=.*/FRONTEND_VERSION=\$FRONTEND_VERSION/" "\$ENV_FILE"
+              docker compose up -d frontend
             else
               echo "FRONTEND_VERSION не передан — пропускаем."
             fi
 
-            # Перезапускаем сервисы через docker compose
-            echo "🔄 Перезапускаем сервисы: docker compose up -d"
-            cd deploy || { echo "Не могу перейти в deploy"; exit 1; }
-            docker compose backend up -d
-            docker compose frontent up -d
-
-            # Выводим текущие значения
-            echo "Текущие версии:"
-            grep -E "^(BACKEND_VERSION|FRONTEND_VERSION)=" "$ENV_FILE"
-          EOF
+            echo "✅ Текущие версии:"
+            grep -E "^(BACKEND_VERSION|FRONTEND_VERSION)=" "\$ENV_FILE"
+EOF
