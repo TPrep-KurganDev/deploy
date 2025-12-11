@@ -4,46 +4,45 @@ on:
   workflow_dispatch:
     inputs:
       backend_version:
-        description: 'Backend version (e.g. 1.0)'
+        description: 'New backend version (e.g. 1.0)'
         required: false
       frontend_version:
-        description: 'Frontend version (e.g. 2.0)'
+        description: 'New frontend version (e.g. 2.0)'
         required: false
 
 jobs:
   update-env:
     runs-on: ubuntu-latest
     steps:
-      - name: Prepare SSH Key
-        run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > /tmp/ssh_key
-          chmod 600 /tmp/ssh_key
+      - name: Install SSH client (just in case)
+        run: sudo apt-get update && sudo apt-get install -y openssh-client
 
-      - name: Debug Check key exists and format
+      - name: Set up SSH key
         run: |
-          echo "Key first lines:"
-          head -n 3 /tmp/ssh_key
-          echo "Key last lines:"
-          tail -n 3 /tmp/ssh_key
-          echo "File permissions:"
-          ls -la /tmp/ssh_key
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo -e "Host ${ { secrets.SSH_HOST } }\n\tStrictHostKeyChecking no\n\tUser ${ { secrets.SSH_USER } }" >> ~/.ssh/config
+          chmod 600 ~/.ssh/config
 
-      - name: Update .env via SSH
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key_path: /tmp/ssh_key   # ← Указываем путь к файлу
-          port: 22
-          script: |
+      - name: Update .env file on server
+        env:
+          BACKEND_VERSION: ${{ inputs.backend_version }}
+          FRONTEND_VERSION: ${{ inputs.frontend_version }}
+        run: |
+          ssh ${ { secrets.SSH_USER } }@${ { secrets.SSH_HOST } } '
             ENV_FILE="/deploy/.env"
+
+            # Проверяем, существует ли файл
             if [ ! -f "$ENV_FILE" ]; then
               echo "Файл $ENV_FILE не найден!"
               exit 1
             fi
 
-            sed -i "s/^BACKEND_VERSION=.*/BACKEND_VERSION=${{ inputs.backend_version }}/" "$ENV_FILE"
-            sed -i "s/^FRONTEND_VERSION=.*/FRONTEND_VERSION=${{ inputs.frontend_version }}/" "$ENV_FILE"
+            # Обновляем значения
+            sed -i "s/^BACKEND_VERSION=.*/BACKEND_VERSION=$BACKEND_VERSION/" "$ENV_FILE"
+            sed -i "s/^FRONTEND_VERSION=.*/FRONTEND_VERSION=$FRONTEND_VERSION/" "$ENV_FILE"
 
-            echo "Обновлён .env файл:"
+            echo "Успешно обновлено:"
             grep -E "^(BACKEND_VERSION|FRONTEND_VERSION)=" "$ENV_FILE"
+          '
