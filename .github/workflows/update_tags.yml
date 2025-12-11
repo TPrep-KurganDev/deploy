@@ -31,7 +31,7 @@ jobs:
           FRONTEND_VERSION: ${{ inputs.frontend_version }}
         run: |
           ssh -l ${{ secrets.SSH_USER }} ${{ secrets.SSH_HOST }} '
-            ENV_FILE="/deploy/.env"
+            ENV_FILE="deploy/.env"
 
             # Проверяем, существует ли файл
             if [ ! -f "$ENV_FILE" ]; then
