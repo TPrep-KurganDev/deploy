@@ -30,7 +30,7 @@ jobs:
           BACKEND_VERSION: ${{ inputs.backend_version }}
           FRONTEND_VERSION: ${{ inputs.frontend_version }}
         run: |
-          ssh ${ { secrets.SSH_USER } }@${ { secrets.SSH_HOST } } '
+          ssh -l ${{ secrets.SSH_USER }} ${{ secrets.SSH_HOST }} '
             ENV_FILE="/deploy/.env"
 
             # Проверяем, существует ли файл
