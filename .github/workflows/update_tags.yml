@@ -57,8 +57,9 @@ jobs:
 
             # Перезапускаем сервисы через docker compose
             echo "🔄 Перезапускаем сервисы: docker compose up -d"
-            cd /deploy || { echo "Не могу перейти в /deploy"; exit 1; }
-            docker compose up -d
+            cd deploy || { echo "Не могу перейти в deploy"; exit 1; }
+            docker compose backend up -d
+            docker compose frontent up -d
 
             # Выводим текущие значения
             echo "Текущие версии:"
