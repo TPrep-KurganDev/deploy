@@ -1,48 +1,66 @@
-name: Update .env Versions
+name: Update .env and Restart
 
 on:
   workflow_dispatch:
     inputs:
       backend_version:
-        description: 'New backend version (e.g. 1.0)'
+        description: 'New backend version (optional, leave empty to skip)'
         required: false
       frontend_version:
-        description: 'New frontend version (e.g. 2.0)'
+        description: 'New frontend version (optional, leave empty to skip)'
         required: false
 
 jobs:
   update-env:
     runs-on: ubuntu-latest
     steps:
-      - name: Install SSH client (just in case)
+      - name: 🛠️ Install SSH client
         run: sudo apt-get update && sudo apt-get install -y openssh-client
 
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          echo -e "Host ${{ secrets.SSH_HOST }}\n\tStrictHostKeyChecking no\n\tUser ${{ secrets.SSH_USER }}" >> ~/.ssh/config
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          echo -e "Host server\n  HostName ${{ secrets.SSH_HOST }}\n  User ${{ secrets.SSH_USER }}\n  IdentityFile ~/.ssh/deploy_key\n  StrictHostKeyChecking no" > ~/.ssh/config
           chmod 600 ~/.ssh/config
 
-      - name: Update .env file on server
-        env:
-          BACKEND_VERSION: ${{ inputs.backend_version }}
-          FRONTEND_VERSION: ${{ inputs.frontend_version }}
+      - name: Update .env and restart
         run: |
-          ssh -l ${{ secrets.SSH_USER }} ${{ secrets.SSH_HOST }} '
+          BACKEND_VERSION="${{ inputs.backend_version }}"
+          FRONTEND_VERSION="${{ inputs.frontend_version }}"
+
+          ssh server << 'EOF'
             ENV_FILE="deploy/.env"
 
-            # Проверяем, существует ли файл
             if [ ! -f "$ENV_FILE" ]; then
               echo "Файл $ENV_FILE не найден!"
               exit 1
             fi
 
-            # Обновляем значения
-            sed -i "s/^BACKEND_VERSION=.*/BACKEND_VERSION=$BACKEND_VERSION/" "$ENV_FILE"
-            sed -i "s/^FRONTEND_VERSION=.*/FRONTEND_VERSION=$FRONTEND_VERSION/" "$ENV_FILE"
+            # Обновляем BACKEND_VERSION, если переменная задана и не пустая
+            if [ -n "$BACKEND_VERSION" ]; then
+              echo "Меняем BACKEND_VERSION на $BACKEND_VERSION"
+              sed -i "s/^BACKEND_VERSION=.*/BACKEND_VERSION=$BACKEND_VERSION/" "$ENV_FILE"
+            else
+              echo "BACKEND_VERSION не передан — пропускаем."
+            fi
 
-            echo "Успешно обновлено:"
+            # Обновляем FRONTEND_VERSION, если задана
+            if [ -n "$FRONTEND_VERSION" ]; then
+              echo "Меняем FRONTEND_VERSION на $FRONTEND_VERSION"
+              sed -i "s/^FRONTEND_VERSION=.*/FRONTEND_VERSION=$FRONTEND_VERSION/" "$ENV_FILE"
+            else
+              echo "FRONTEND_VERSION не передан — пропускаем."
+            fi
+
+            # Перезапускаем сервисы через docker compose
+            echo "🔄 Перезапускаем сервисы: docker compose up -d"
+            cd /deploy || { echo "Не могу перейти в /deploy"; exit 1; }
+            docker compose up -d
+
+            # Выводим текущие значения
+            echo "Текущие версии:"
             grep -E "^(BACKEND_VERSION|FRONTEND_VERSION)=" "$ENV_FILE"
-          '
+          EOF
