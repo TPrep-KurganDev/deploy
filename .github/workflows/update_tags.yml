@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       backend_version:
-        description: 'Backend version'
+        description: 'Backend version (e.g. 1.0)'
         required: false
       frontend_version:
-        description: 'Frontend version'
+        description: 'Frontend version (e.g. 2.0)'
         required: false
 
 jobs:
@@ -16,26 +16,34 @@ jobs:
     steps:
       - name: Prepare SSH Key
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > /tmp/ssh_key
+          chmod 600 /tmp/ssh_key
 
-      - name: Update .env on Server
+      - name: Debug Check key exists and format
+        run: |
+          echo "Key first lines:"
+          head -n 3 /tmp/ssh_key
+          echo "Key last lines:"
+          tail -n 3 /tmp/ssh_key
+          echo "File permissions:"
+          ls -la /tmp/ssh_key
+
+      - name: Update .env via SSH
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key_path: ~/.ssh/id_ed25519
+          key_path: /tmp/ssh_key   # ← Указываем путь к файлу
           port: 22
           script: |
             ENV_FILE="/deploy/.env"
             if [ ! -f "$ENV_FILE" ]; then
-              echo "❌ Файл $ENV_FILE не найден!"
+              echo "Файл $ENV_FILE не найден!"
               exit 1
             fi
 
             sed -i "s/^BACKEND_VERSION=.*/BACKEND_VERSION=${{ inputs.backend_version }}/" "$ENV_FILE"
             sed -i "s/^FRONTEND_VERSION=.*/FRONTEND_VERSION=${{ inputs.frontend_version }}/" "$ENV_FILE"
 
-            echo "✅ Обновлён .env файл:"
+            echo "Обновлён .env файл:"
             grep -E "^(BACKEND_VERSION|FRONTEND_VERSION)=" "$ENV_FILE"
