@@ -1,0 +1,61 @@
+name: Update tags
+
+on:
+  workflow_dispatch:
+    inputs:
+      backend_version:
+        description: 'New backend version'
+        required: false
+      frontend_version:
+        description: 'New frontend version'
+        required: false
+
+jobs:
+  update-env:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install SSH client
+        run: sudo apt-get update && sudo apt-get install -y openssh-client
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          echo -e "Host server\n  HostName ${{ secrets.SSH_HOST }}\n  User ${{ secrets.SSH_USER }}\n  IdentityFile ~/.ssh/deploy_key\n  StrictHostKeyChecking no" > ~/.ssh/config
+          chmod 600 ~/.ssh/config
+
+      - name: Update .env and restart
+        run: |
+          ssh server '
+            BACKEND_VERSION='"${{ inputs.backend_version }}"'
+            FRONTEND_VERSION='"${{ inputs.frontend_version }}"'
+            ENV_FILE=".env"
+
+            cd deploy
+            
+            if [ ! -f "$ENV_FILE" ]; then
+              echo "Файл $ENV_FILE не найден!"
+              exit 1
+            fi
+
+            if [ -n "$BACKEND_VERSION" ]; then
+              echo "Меняем BACKEND_VERSION на $BACKEND_VERSION"
+              sed -i "s/^BACKEND_VERSION=.*/BACKEND_VERSION=$BACKEND_VERSION/" "$ENV_FILE"
+              docker compose up -d backend
+            else
+              echo "BACKEND_VERSION не передан — пропускаем."
+            fi
+
+            if [ -n "$FRONTEND_VERSION" ]; then
+              echo "Меняем FRONTEND_VERSION на $FRONTEND_VERSION"
+              sed -i "s/^FRONTEND_VERSION=.*/FRONTEND_VERSION=$FRONTEND_VERSION/" "$ENV_FILE"
+              docker compose up -d frontend
+            else
+              echo "FRONTEND_VERSION не передан — пропускаем."
+            fi
+
+            echo "Текущие версии:"
+            grep -E "^(BACKEND_VERSION|FRONTEND_VERSION)=" "$ENV_FILE"
+          '
