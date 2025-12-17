@@ -47,6 +47,30 @@ services:
       "
     restart: unless-stopped
 
+  notificator:
+    image: ghcr.io/tprep-kurgandev/backend/release-backend:${BACKEND_VERSION:-latest}
+    platform: linux/amd64
+    container_name: tprep_notificator
+    environment:
+      DB_USER: ${DB_USER}
+      DB_NAME: ${DB_NAME}
+      DB_HOST: ${DB_HOST}
+      DB_PASSWORD: ${DB_PASSWORD}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      SECRET_KEY: ${SECRET_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        sleep 5 &&
+        echo 'Starting notificator...' &&
+        python -m tprep.notificator.notificator
+      "
+    restart: unless-stopped
+
   frontend:
     image: ghcr.io/tprep-kurgandev/frontend/release-frontend:${FRONTEND_VERSION:-latest}
     platform: linux/amd64
