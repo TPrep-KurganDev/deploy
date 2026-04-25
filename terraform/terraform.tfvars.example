@@ -1,0 +1,10 @@
+cloud_id     = "b1g..."
+folder_id    = "b1g..."
+zone         = "ru-central1-a"
+yc_token     = ""  # yc iam create-token
+cores        = 2
+memory       = 2
+disk_size    = 20
+github_owner = "TPrep-KurganDev"
+github_token = "ghp_..."
+domain       = "tprep.duckdns.org"
