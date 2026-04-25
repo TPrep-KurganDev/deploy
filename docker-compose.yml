@@ -1,6 +1,6 @@
 services:
   traefik:
-    image: traefik:v3.3
+    image: traefik:v3.6
     container_name: traefik
     command:
       - "--providers.docker=true"
@@ -15,8 +15,6 @@ services:
     ports:
       - "80:80"
       - "443:443"
-    environment:
-      - DOCKER_API_VERSION=1.54
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "letsencrypt:/letsencrypt"
