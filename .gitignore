@@ -1,0 +1,11 @@
+.env
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/*.tfvars
+!terraform/*.tfvars.example
+
+# Certbot
+certbot/
